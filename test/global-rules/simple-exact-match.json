@@ -1,0 +1,8 @@
+{
+  "domain": "lifescience",
+  "ruleName": "SimpleExactNameMatch",
+  "description": "Matches entities with identical names (case-insensitive).",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\nimport com.mdm.botcore.service.MergeService.MergeSuggestion;\n\nrule \"SimpleExactNameMatch\"\n    salience 100\n    when\n        $entity1 : MDMEntity(name != null)\n        $entity2 : MDMEntity(name != null, this != $entity1)\n        eval($entity1.name.equalsIgnoreCase($entity2.name))\n    then\n        System.out.println(\"Rule 'SimpleExactNameMatch' fired for \" + $entity1.getName() + \" and \" + $entity2.getName());\n        MergeSuggestion suggestion = new MergeSuggestion($entity1, $entity2, \"SimpleExactNameMatch\", \n            \"Names match exactly: \" + $entity1.getName(), \n            \"{\\\"mergedName\\\":\\\"\" + $entity1.getName() + \"\\\"}\");\n        insert(suggestion);\nend",
+  "priority": 100,
+  "active": true
+} 

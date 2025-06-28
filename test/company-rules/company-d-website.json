@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_D",
+  "ruleName": "CompanyDWebsiteMatch",
+  "description": "Company D specific rule for website-based entity matching.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"CompanyDWebsiteMatch\"\n    salience 85\n    when\n        $entity1 : MDMEntity(website != null, website.length() > 5)\n        $entity2 : MDMEntity(website != null, this != $entity1, website.length() > 5)\n        eval(normalizeWebsite($entity1.website).equals(normalizeWebsite($entity2.website)))\n    then\n        // Company D website-based matching\nend",
+  "priority": 85,
+  "active": true,
+  "overrideGlobal": false
+} 

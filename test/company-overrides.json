@@ -1,0 +1,38 @@
+[
+  {
+    "companyId": "COMPANY_A",
+    "ruleName": "ExactCompanyNameMatch",
+    "description": "Company A's enhanced exact company name match rule with additional validation.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"ExactCompanyNameMatch\"\n    salience 110 // Higher priority than global\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, name.length() > 3)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.length() > 3)\n        eval($entity1.name.equalsIgnoreCase($entity2.name) && $entity1.name.length() > 3)\n        eval(!$entity1.name.toLowerCase().contains(\"inc\") && !$entity1.name.toLowerCase().contains(\"corp\"))\n    then\n        // Company A specific exact name matching with exclusion logic\nend",
+    "priority": 110,
+    "active": true,
+    "overrideGlobal": true
+  },
+  {
+    "companyId": "COMPANY_B",
+    "ruleName": "AddressBasedMatch",
+    "description": "Company B's enhanced address matching with postal code validation.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"AddressBasedMatch\"\n    salience 105 // Higher priority than global\n    when\n        $entity1 : MDMEntity(address != null, postalCode != null, address.length() > 10)\n        $entity2 : MDMEntity(address != null, postalCode != null, this != $entity1, address.length() > 10)\n        eval($entity1.address.equalsIgnoreCase($entity2.address) && $entity1.postalCode.equals($entity2.postalCode))\n    then\n        // Company B address + postal code matching\nend",
+    "priority": 105,
+    "active": true,
+    "overrideGlobal": true
+  },
+  {
+    "companyId": "COMPANY_C",
+    "ruleName": "PhoneNumberMatch",
+    "description": "Company C's enhanced phone matching with area code validation.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"PhoneNumberMatch\"\n    salience 100 // Higher priority than global\n    when\n        $entity1 : MDMEntity(phone != null, phone.length() >= 10, areaCode != null)\n        $entity2 : MDMEntity(phone != null, this != $entity1, phone.length() >= 10, areaCode != null)\n        eval(normalizePhone($entity1.phone).equals(normalizePhone($entity2.phone)) && $entity1.areaCode.equals($entity2.areaCode))\n    then\n        // Company C phone + area code matching\nend",
+    "priority": 100,
+    "active": true,
+    "overrideGlobal": true
+  },
+  {
+    "companyId": "COMPANY_D",
+    "ruleName": "FuzzyNameMatch",
+    "description": "Company D's enhanced fuzzy name matching with industry context.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"FuzzyNameMatch\"\n    salience 75 // Higher priority than global\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, industry != null, name.length() > 5)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, industry != null, this != $entity1, name.length() > 5)\n        eval(calculateSimilarity($entity1.name, $entity2.name) > 0.85 && $entity1.industry.equals($entity2.industry))\n    then\n        // Company D fuzzy name + industry matching\nend",
+    "priority": 75,
+    "active": true,
+    "overrideGlobal": true
+  }
+] 

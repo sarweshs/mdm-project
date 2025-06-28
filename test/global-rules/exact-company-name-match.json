@@ -1,0 +1,8 @@
+{
+  "domain": "lifescience",
+  "ruleName": "ExactCompanyNameMatch",
+  "description": "Matches entities with identical company names (case-insensitive).",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\nimport com.mdm.botcore.service.MergeService.MergeSuggestion;\n\nrule \"ExactCompanyNameMatch\"\n    salience 100\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1)\n        eval($entity1.name.equalsIgnoreCase($entity2.name))\n    then\n        System.out.println(\"Rule 'ExactCompanyNameMatch' fired for \" + $entity1.getName() + \" and \" + $entity2.getName());\n        // Create merge suggestion\n        MergeSuggestion suggestion = new MergeSuggestion($entity1, $entity2, \"ExactCompanyNameMatch\", \n            \"Company names match exactly: \" + $entity1.getName(), \n            \"{\\\"mergedName\\\":\\\"\" + $entity1.getName() + \"\\\"}\");\n        insert(suggestion);\nend",
+  "priority": 100,
+  "active": true
+} 

@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_A",
+  "ruleName": "CompanyASpecificAddressMatch",
+  "description": "Company A specific rule for address matching.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"CompanyASpecificAddressMatch\"\n    salience 90\n    when\n        $entity1 : MDMEntity(address != null)\n        $entity2 : MDMEntity(address != null, this != $entity1, address == $entity1.address)\n    then\n        // Bot will handle actions here\nend",
+  "priority": 90,
+  "active": true,
+  "overrideGlobal": false
+} 

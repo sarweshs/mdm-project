@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_B",
+  "ruleName": "AddressBasedMatch",
+  "description": "Company B's enhanced address matching with postal code validation.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"AddressBasedMatch\"\n    salience 105 // Higher priority than global\n    when\n        $entity1 : MDMEntity(address != null, postalCode != null, address.length() > 10)\n        $entity2 : MDMEntity(address != null, postalCode != null, this != $entity1, address.length() > 10)\n        eval($entity1.address.equalsIgnoreCase($entity2.address) && $entity1.postalCode.equals($entity2.postalCode))\n    then\n        // Company B address + postal code matching\nend",
+  "priority": 105,
+  "active": true,
+  "overrideGlobal": true
+} 

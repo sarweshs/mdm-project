@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_A",
+  "ruleName": "ExactCompanyNameMatch",
+  "description": "Company A's enhanced exact company name match rule with additional validation.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"ExactCompanyNameMatch\"\n    salience 110 // Higher priority than global\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, name.length() > 3)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.length() > 3)\n        eval($entity1.name.equalsIgnoreCase($entity2.name) && $entity1.name.length() > 3)\n        eval(!$entity1.name.toLowerCase().contains(\"inc\") && !$entity1.name.toLowerCase().contains(\"corp\"))\n    then\n        // Company A specific exact name matching with exclusion logic\nend",
+  "priority": 110,
+  "active": true,
+  "overrideGlobal": true
+} 

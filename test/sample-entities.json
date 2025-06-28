@@ -1,0 +1,65 @@
+[
+  {
+    "id": "org-001",
+    "type": "Organization",
+    "name": "Acme Corporation",
+    "address": "123 Main Street, New York, NY 10001",
+    "email": "contact@acme.com",
+    "phone": "+1-555-123-4567",
+    "sourceSystem": "CRM_SYSTEM_A"
+  },
+  {
+    "id": "org-002",
+    "type": "Organization",
+    "name": "ACME CORPORATION",
+    "address": "456 Business Ave, Los Angeles, CA 90210",
+    "email": "info@acme.com",
+    "phone": "+1-555-123-4567",
+    "sourceSystem": "ERP_SYSTEM_B"
+  },
+  {
+    "id": "org-003",
+    "type": "Organization",
+    "name": "Tech Solutions Inc",
+    "address": "123 Main Street, New York, NY 10001",
+    "email": "sales@techsolutions.com",
+    "phone": "+1-555-987-6543",
+    "sourceSystem": "CRM_SYSTEM_A"
+  },
+  {
+    "id": "org-004",
+    "type": "Organization",
+    "name": "Global Pharmaceuticals",
+    "address": "789 Research Blvd, Boston, MA 02101",
+    "email": "contact@globalpharma.com",
+    "phone": "+1-555-456-7890",
+    "sourceSystem": "ERP_SYSTEM_B"
+  },
+  {
+    "id": "org-005",
+    "type": "Organization",
+    "name": "Global Pharmaceuticals",
+    "address": "321 Science Park, San Diego, CA 92101",
+    "email": "info@globalpharma.com",
+    "phone": "+1-555-456-7890",
+    "sourceSystem": "CRM_SYSTEM_A"
+  },
+  {
+    "id": "org-006",
+    "type": "Organization",
+    "name": "Innovation Labs",
+    "address": "555 Tech Drive, Austin, TX 73301",
+    "email": "hello@innovationlabs.com",
+    "phone": "+1-555-111-2222",
+    "sourceSystem": "ERP_SYSTEM_B"
+  },
+  {
+    "id": "org-007",
+    "type": "Organization",
+    "name": "Innovation Labs",
+    "address": "777 Innovation Way, Seattle, WA 98101",
+    "email": "contact@innovationlabs.com",
+    "phone": "+1-555-333-4444",
+    "sourceSystem": "CRM_SYSTEM_A"
+  }
+] 

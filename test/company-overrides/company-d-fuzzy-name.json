@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_D",
+  "ruleName": "FuzzyNameMatch",
+  "description": "Company D's enhanced fuzzy name matching with industry context.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"FuzzyNameMatch\"\n    salience 75 // Higher priority than global\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, industry != null, name.length() > 5)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, industry != null, this != $entity1, name.length() > 5)\n        eval(calculateSimilarity($entity1.name, $entity2.name) > 0.85 && $entity1.industry.equals($entity2.industry))\n    then\n        // Company D fuzzy name + industry matching\nend",
+  "priority": 75,
+  "active": true,
+  "overrideGlobal": true
+} 

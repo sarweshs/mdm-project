@@ -1,0 +1,8 @@
+{
+  "domain": "lifescience",
+  "ruleName": "FuzzyNameMatch",
+  "description": "Matches entities with similar names using fuzzy logic.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"FuzzyNameMatch\"\n    salience 60\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, name.length() > 5)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.length() > 5)\n        eval(calculateSimilarity($entity1.name, $entity2.name) > 0.8)\n    then\n        // Fuzzy name matching with similarity threshold\nend",
+  "priority": 60,
+  "active": true
+} 

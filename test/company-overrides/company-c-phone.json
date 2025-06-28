@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_C",
+  "ruleName": "PhoneNumberMatch",
+  "description": "Company C's enhanced phone matching with area code validation.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"PhoneNumberMatch\"\n    salience 100 // Higher priority than global\n    when\n        $entity1 : MDMEntity(phone != null, phone.length() >= 10, areaCode != null)\n        $entity2 : MDMEntity(phone != null, this != $entity1, phone.length() >= 10, areaCode != null)\n        eval(normalizePhone($entity1.phone).equals(normalizePhone($entity2.phone)) && $entity1.areaCode.equals($entity2.areaCode))\n    then\n        // Company C phone + area code matching\nend",
+  "priority": 100,
+  "active": true,
+  "overrideGlobal": true
+} 

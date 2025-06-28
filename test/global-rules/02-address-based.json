@@ -1,0 +1,8 @@
+{
+  "domain": "lifescience",
+  "ruleName": "AddressBasedMatch",
+  "description": "Matches entities with identical address information.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"AddressBasedMatch\"\n    salience 90\n    when\n        $entity1 : MDMEntity(address != null, address.length() > 10)\n        $entity2 : MDMEntity(address != null, this != $entity1, address.equalsIgnoreCase($entity1.address))\n    then\n        // Address-based matching\nend",
+  "priority": 90,
+  "active": true
+} 

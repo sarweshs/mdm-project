@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_B",
+  "ruleName": "CompanyBPhoneMatch",
+  "description": "Company B specific phone number matching with international format support.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"CompanyBPhoneMatch\"\n    salience 90\n    when\n        $entity1 : MDMEntity(phone != null, phone.length() >= 10)\n        $entity2 : MDMEntity(phone != null, this != $entity1, phone.length() >= 10)\n        eval(normalizePhoneNumber($entity1.phone).equals(normalizePhoneNumber($entity2.phone)))\n    then\n        // Company B phone matching with international normalization\nend",
+  "priority": 90,
+  "active": true,
+  "overrideGlobal": false
+} 

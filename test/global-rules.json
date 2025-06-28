@@ -1,0 +1,50 @@
+[
+  {
+    "domain": "lifescience",
+    "ruleName": "ExactCompanyNameMatch",
+    "description": "Matches entities with identical company names (case-insensitive).",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"ExactCompanyNameMatch\"\n    salience 100\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.equalsIgnoreCase($entity1.name))\n    then\n        // High confidence match - exact name match\nend",
+    "priority": 100,
+    "active": true
+  },
+  {
+    "domain": "lifescience",
+    "ruleName": "AddressBasedMatch",
+    "description": "Matches entities with identical address information.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"AddressBasedMatch\"\n    salience 90\n    when\n        $entity1 : MDMEntity(address != null, address.length() > 10)\n        $entity2 : MDMEntity(address != null, this != $entity1, address.equalsIgnoreCase($entity1.address))\n    then\n        // Address-based matching\nend",
+    "priority": 90,
+    "active": true
+  },
+  {
+    "domain": "lifescience",
+    "ruleName": "PhoneNumberMatch",
+    "description": "Matches entities with identical phone numbers.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"PhoneNumberMatch\"\n    salience 85\n    when\n        $entity1 : MDMEntity(phone != null, phone.length() >= 10)\n        $entity2 : MDMEntity(phone != null, this != $entity1, phone.replaceAll(\"[^0-9]\", \"\").equals($entity1.phone.replaceAll(\"[^0-9]\", \"\")))\n    then\n        // Phone number matching with normalization\nend",
+    "priority": 85,
+    "active": true
+  },
+  {
+    "domain": "lifescience",
+    "ruleName": "EmailDomainMatch",
+    "description": "Matches entities with same email domain.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"EmailDomainMatch\"\n    salience 70\n    when\n        $entity1 : MDMEntity(email != null, email.contains(\"@\"))\n        $entity2 : MDMEntity(email != null, this != $entity1, email.contains(\"@\"))\n        eval($entity1.email.substring($entity1.email.indexOf(\"@\")) == $entity2.email.substring($entity2.email.indexOf(\"@\")))\n    then\n        // Email domain matching\nend",
+    "priority": 70,
+    "active": true
+  },
+  {
+    "domain": "lifescience",
+    "ruleName": "FuzzyNameMatch",
+    "description": "Matches entities with similar names using fuzzy logic.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"FuzzyNameMatch\"\n    salience 60\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, name.length() > 5)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.length() > 5)\n        eval(calculateSimilarity($entity1.name, $entity2.name) > 0.8)\n    then\n        // Fuzzy name matching with similarity threshold\nend",
+    "priority": 60,
+    "active": true
+  },
+  {
+    "domain": "technology",
+    "ruleName": "TechCompanyNameMatch",
+    "description": "Technology-specific company name matching rules.",
+    "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"TechCompanyNameMatch\"\n    salience 95\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, industry == \"Technology\")\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, industry == \"Technology\", name.equalsIgnoreCase($entity1.name))\n    then\n        // Technology company specific matching\nend",
+    "priority": 95,
+    "active": true
+  }
+] 

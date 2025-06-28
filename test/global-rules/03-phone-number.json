@@ -1,0 +1,8 @@
+{
+  "domain": "lifescience",
+  "ruleName": "PhoneNumberMatch",
+  "description": "Matches entities with identical phone numbers.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"PhoneNumberMatch\"\n    salience 85\n    when\n        $entity1 : MDMEntity(phone != null, phone.length() >= 10)\n        $entity2 : MDMEntity(phone != null, this != $entity1, phone.replaceAll(\"[^0-9]\", \"\").equals($entity1.phone.replaceAll(\"[^0-9]\", \"\")))\n    then\n        // Phone number matching with normalization\nend",
+  "priority": 85,
+  "active": true
+} 

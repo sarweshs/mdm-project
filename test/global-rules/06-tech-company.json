@@ -1,0 +1,8 @@
+{
+  "domain": "technology",
+  "ruleName": "TechCompanyNameMatch",
+  "description": "Technology-specific company name matching rules.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"TechCompanyNameMatch\"\n    salience 95\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null, industry == \"Technology\")\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, industry == \"Technology\", name.equalsIgnoreCase($entity1.name))\n    then\n        // Technology company specific matching\nend",
+  "priority": 95,
+  "active": true
+} 

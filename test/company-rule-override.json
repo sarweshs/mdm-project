@@ -1,0 +1,9 @@
+{
+  "companyId": "COMPANY_A",
+  "ruleName": "ExactCompanyNameMatch",
+  "description": "Company A's custom exact company name match rule.",
+  "ruleLogic": "package com.mdm.rules\n\nimport com.mdm.botcore.domain.model.MDMEntity;\n\nrule \"ExactCompanyNameMatch\"\n    salience 110 // Higher priority than global\n    when\n        $entity1 : MDMEntity(type == \"Organization\", name != null)\n        $entity2 : MDMEntity(type == \"Organization\", name != null, this != $entity1, name.equalsIgnoreCase($entity1.name) && name.length() > 5)\n    then\n        // Company A specific logic\nend",
+  "priority": 110,
+  "active": true,
+  "overrideGlobal": true
+} 
