@@ -239,4 +239,24 @@ public class MergeService {
     public List<MergeCandidatePair> getMergeCandidatesByStatus(MergeCandidatePair.MergeStatus status) {
         return mergeCandidatePairRepository.findByStatus(status);
     }
+
+    /**
+     * Retrieves a single merge candidate pair by its ID.
+     * @param id The ID of the merge candidate pair.
+     * @return An Optional containing the MergeCandidatePair if found.
+     */
+    @Transactional(readOnly = true)
+    public Optional<MergeCandidatePair> getMergeCandidateById(Long id) {
+        return mergeCandidatePairRepository.findById(id);
+    }
+
+    /**
+     * Retrieves audit logs for a specific merge candidate pair ID.
+     * @param mergeCandidatePairId The ID of the merge candidate pair.
+     * @return A list of matching AuditLog entries.
+     */
+    @Transactional(readOnly = true)
+    public List<AuditLog> getAuditLogsForMergeCandidate(Long mergeCandidatePairId) {
+        return auditLogRepository.findByMergeCandidatePairId(mergeCandidatePairId);
+    }
 }

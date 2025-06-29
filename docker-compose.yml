@@ -1,8 +1,9 @@
+# mdm-project/docker-compose.yml
 version: '3.8'
 
 services:
   mdm_postgres_db:
-    image: postgres:16.3-alpine  # Use a recent stable Alpine image for smaller size
+    image: postgres:16.3-alpine
     container_name: mdm_postgres_db
     environment:
       POSTGRES_DB: mdm_db
@@ -11,13 +12,108 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - mdm_pg_data:/var/lib/postgresql/data # Persistent data volume
+      - mdm_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mdmuser -d mdm_db"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  mdm-global-rules:
+    build:
+      context: ./mdm-global-rules
+      dockerfile: Dockerfile
+    container_name: mdm-global-rules
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://mdm_postgres_db:5432/mdm_db
+      SPRING_DATASOURCE_USERNAME: mdmuser
+      SPRING_DATASOURCE_PASSWORD: mdm_password
+    depends_on:
+      mdm_postgres_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: on-failure
+
+  mdm-bot-core:
+    build:
+      context: ./mdm-bot-core
+      dockerfile: Dockerfile
+    container_name: mdm-bot-core
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://mdm_postgres_db:5432/mdm_db
+      SPRING_DATASOURCE_USERNAME: mdmuser
+      SPRING_DATASOURCE_PASSWORD: mdm_password
+      MDM_GLOBAL_RULES_BASE_URL: http://mdm-global-rules:8080
+    depends_on:
+      mdm_postgres_db:
+        condition: service_healthy
+      mdm-global-rules:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: on-failure
+
+  mdm-ai-orchestration:
+    build:
+      context: ./mdm-ai-orchestration
+      dockerfile: Dockerfile
+    container_name: mdm-ai-orchestration
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      MDM_BOT_CORE_BASE_URL: http://mdm-bot-core:8081
+    depends_on:
+      mdm-bot-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: on-failure
+
+  mdm-review-dashboard:
+    build:
+      context: ./mdm-review-dashboard
+      dockerfile: Dockerfile
+    container_name: mdm-review-dashboard
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MDM_BOT_CORE_BASE_URL: http://mdm-bot-core:8081
+      MDM_AI_ORCHESTRATION_BASE_URL: http://mdm-ai-orchestration:8083
+    depends_on:
+      mdm-bot-core:
+        condition: service_healthy
+      mdm-ai-orchestration:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: on-failure
 
 volumes:
   mdm_pg_data:

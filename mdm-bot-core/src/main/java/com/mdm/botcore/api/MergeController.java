@@ -2,6 +2,7 @@ package com.mdm.botcore.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdm.botcore.domain.model.MDMEntity;
+import com.mdm.botcore.domain.model.AuditLog;
 import com.mdm.botcore.domain.model.MergeCandidatePair;
 import com.mdm.botcore.service.MergeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,5 +105,17 @@ public class MergeController {
         return mergeService.updateMergeCandidateStatus(id, newStatus, comment)
                 .map(updatedPair -> new ResponseEntity<>(updatedPair, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * Retrieves audit logs for a specific merge candidate pair.
+     * This endpoint is intended for the human review dashboard to show historical reasoning.
+     * @param id The ID of the merge candidate pair.
+     * @return A list of AuditLog objects.
+     */
+    @GetMapping("/candidates/{id}/audit-logs")
+    public ResponseEntity<List<AuditLog>> getAuditLogsForCandidate(@PathVariable Long id) {
+        List<AuditLog> auditLogs = mergeService.getAuditLogsForMergeCandidate(id);
+        return new ResponseEntity<>(auditLogs, HttpStatus.OK);
     }
 }

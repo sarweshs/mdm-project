@@ -10,14 +10,14 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mdm-global-rules</artifactId>
-    <name>MDM Global Rules Service</name>
-    <description>Manages global and company-specific merge rules</description>
+    <artifactId>mdm-ai-orchestration</artifactId>
+    <name>MDM AI Orchestration Service</name>
+    <description>Handles LLM interactions and orchestrates bot actions</description>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-webflux</artifactId> <!-- For WebClient to call LLM and other services -->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -27,9 +27,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Re-use DTOs/Entities from mdm-bot-core -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
+            <groupId>com.mdm</groupId>
+            <artifactId>mdm-bot-core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-data-jpa</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

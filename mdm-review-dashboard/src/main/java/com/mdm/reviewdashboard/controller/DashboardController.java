@@ -4,6 +4,7 @@ import com.mdm.reviewdashboard.domain.MDMEntity;
 import com.mdm.reviewdashboard.domain.MergeCandidatePair;
 import com.mdm.reviewdashboard.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value; // Import Value
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,9 @@ public class DashboardController {
 
     private final ReviewService reviewService;
 
+    @Value("${mdm.ai-orchestration.base-url}") // Inject the AI orchestration URL
+    private String aiOrchestrationBaseUrl;
+
     @Autowired
     public DashboardController(ReviewService reviewService) {
         this.reviewService = reviewService;
@@ -38,6 +42,7 @@ public class DashboardController {
         List<MergeCandidatePair> pendingCandidates = reviewService.getPendingMergeCandidates();
         model.addAttribute("candidates", pendingCandidates);
         model.addAttribute("reviewService", reviewService); // Pass service to template for deserialization
+        model.addAttribute("aiOrchestrationBaseUrl", aiOrchestrationBaseUrl); // Pass AI service URL to template
         return "dashboard"; // Refers to src/main/resources/templates/dashboard.html
     }
 
