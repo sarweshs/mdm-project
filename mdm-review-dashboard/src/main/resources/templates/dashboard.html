@@ -131,6 +131,14 @@
         .actions button.reject:hover {
             background-color: #c82333;
         }
+        .actions button:disabled {
+            background-color: #6c757d !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .actions button:disabled:hover {
+            background-color: #6c757d !important;
+        }
         .status-badge {
             display: inline-block;
             padding: 5px 10px;
@@ -307,12 +315,21 @@
             <pre th:text="${candidate.reasoningJson}"></pre>
         </div>
 
+        <div th:if="${candidate.reviewComment != null and candidate.reviewComment != ''}">
+            <h3>Review Comment:</h3>
+            <div class="entity-details">
+                <pre th:text="${candidate.reviewComment}"></pre>
+            </div>
+        </div>
+
         <div class="actions">
             <form th:action="@{/dashboard/update-status}" method="post">
                 <input type="hidden" name="id" th:value="${candidate.id}" />
                 <input type="text" name="comment" placeholder="Add optional comment..." />
-                <button type="submit" name="action" value="approve" class="approve">Approve</button>
-                <button type="submit" name="action" value="reject" class="reject">Reject</button>
+                <button type="submit" name="action" value="approve" class="approve" 
+                        th:disabled="${candidate.status == 'APPROVED' or candidate.status == 'REJECTED'}">Approve</button>
+                <button type="submit" name="action" value="reject" class="reject" 
+                        th:disabled="${candidate.status == 'APPROVED' or candidate.status == 'REJECTED'}">Reject</button>
             </form>
         </div>
     </div>

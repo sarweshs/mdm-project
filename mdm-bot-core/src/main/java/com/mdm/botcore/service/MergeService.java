@@ -241,6 +241,15 @@ public class MergeService {
     }
 
     /**
+     * Retrieves all merge candidate pairs regardless of status.
+     * @return A list of all MergeCandidatePair entities.
+     */
+    @Transactional(readOnly = true)
+    public List<MergeCandidatePair> getAllMergeCandidates() {
+        return mergeCandidatePairRepository.findAll();
+    }
+
+    /**
      * Retrieves a single merge candidate pair by its ID.
      * @param id The ID of the merge candidate pair.
      * @return An Optional containing the MergeCandidatePair if found.

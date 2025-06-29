@@ -32,14 +32,14 @@ public class BotController {
      * @param request A map containing the "message" from the user.
      * @return ResponseEntity with the bot's response message.
      */
-    @PostMapping("/chat")
-    public ResponseEntity<Map<String, String>> chatWithBot(@RequestBody Map<String, String> request) {
-        String userMessage = request.get("message");
-        if (userMessage == null || userMessage.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("response", "Please provide a message."));
+    @PostMapping("/bot-chat")
+    public ResponseEntity<?> botChat(@RequestBody Map<String, String> request) {
+        String message = request.get("message");
+        try {
+            Map<String, Object> response = botService.processUserMessage(message);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error processing bot request: " + e.getMessage()));
         }
-
-        String botResponse = botService.processUserMessage(userMessage);
-        return ResponseEntity.ok(Map.of("response", botResponse));
     }
 }

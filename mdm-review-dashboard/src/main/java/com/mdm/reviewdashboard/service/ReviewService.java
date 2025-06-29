@@ -49,6 +49,45 @@ public class ReviewService {
     }
 
     /**
+     * Fetches all merge candidate pairs that have been approved.
+     * @return A list of MergeCandidatePair objects.
+     */
+    public List<MergeCandidatePair> getApprovedMergeCandidates() {
+        return webClient.get()
+                .uri(botCoreBaseUrl + "/api/merge/candidates/approved")
+                .retrieve()
+                .bodyToFlux(MergeCandidatePair.class)
+                .collectList()
+                .block();
+    }
+
+    /**
+     * Fetches all merge candidate pairs that have been rejected.
+     * @return A list of MergeCandidatePair objects.
+     */
+    public List<MergeCandidatePair> getRejectedMergeCandidates() {
+        return webClient.get()
+                .uri(botCoreBaseUrl + "/api/merge/candidates/rejected")
+                .retrieve()
+                .bodyToFlux(MergeCandidatePair.class)
+                .collectList()
+                .block();
+    }
+
+    /**
+     * Fetches all merge candidate pairs regardless of status.
+     * @return A list of MergeCandidatePair objects.
+     */
+    public List<MergeCandidatePair> getAllMergeCandidates() {
+        return webClient.get()
+                .uri(botCoreBaseUrl + "/api/merge/candidates/all")
+                .retrieve()
+                .bodyToFlux(MergeCandidatePair.class)
+                .collectList()
+                .block();
+    }
+
+    /**
      * Approves a merge candidate.
      * @param id The ID of the merge candidate pair.
      * @param comment Optional comment from the reviewer.

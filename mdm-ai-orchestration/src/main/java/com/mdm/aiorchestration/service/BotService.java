@@ -16,9 +16,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Map; // Import Map
 
 /**
  * Service to interact with LLM APIs (OpenAI or Gemini) and orchestrate bot capabilities
@@ -57,12 +58,12 @@ public class BotService {
      * @param userMessage The message from the user.
      * @return The bot's response.
      */
-    public String processUserMessage(String userMessage) {
-        String botResponse = "I'm sorry, I couldn't understand that. Please try rephrasing or ask me about merge candidates, previewing merges, or merging all.";
+    public Map<String, Object> processUserMessage(String userMessage) {
+        Map<String, Object> botResponse = Map.of("response", "I'm sorry, I couldn't understand that. Please try rephrasing or ask me about merge candidates, previewing merges, or merging all.");
 
         // Check if API key is configured for the selected provider
         if (!isApiKeyConfigured()) {
-            return getApiKeyNotConfiguredMessage();
+            return Map.of("response", getApiKeyNotConfiguredMessage());
         }
 
         try {
@@ -77,7 +78,7 @@ public class BotService {
         } catch (Exception e) {
             System.err.println("Error communicating with " + llmProvider + " API: " + e.getMessage());
             e.printStackTrace();
-            botResponse = "I'm having trouble connecting to my brain. Please try again later. Error: " + e.getMessage();
+            botResponse = Map.of("response", "I'm having trouble connecting to my brain. Please try again later. Error: " + e.getMessage());
         }
         return botResponse;
     }
@@ -117,7 +118,7 @@ public class BotService {
      * @param userMessage The user's message.
      * @return The bot's response.
      */
-    private String processWithOpenAI(String userMessage) throws Exception {
+    private Map<String, Object> processWithOpenAI(String userMessage) throws Exception {
         // Construct the prompt for the LLM
         String prompt = createLlmPrompt(userMessage);
 
@@ -166,12 +167,12 @@ public class BotService {
 
                 } catch (JsonProcessingException e) {
                     System.err.println("Error parsing OpenAI JSON response: " + e.getMessage());
-                    return "I got a response, but couldn't parse it. " + openaiText;
+                    return Map.of("response", "I got a response, but couldn't parse it. " + openaiText);
                 }
             }
         }
         
-        return "I'm sorry, I couldn't get a proper response from the AI service.";
+        return Map.of("response", "I'm sorry, I couldn't get a proper response from the AI service.");
     }
 
     /**
@@ -179,7 +180,7 @@ public class BotService {
      * @param userMessage The user's message.
      * @return The bot's response.
      */
-    private String processWithGemini(String userMessage) throws Exception {
+    private Map<String, Object> processWithGemini(String userMessage) throws Exception {
         // Construct the prompt for the LLM
         String prompt = createLlmPrompt(userMessage);
 
@@ -241,13 +242,13 @@ public class BotService {
 
                     } catch (JsonProcessingException e) {
                         System.err.println("Error parsing Gemini JSON response: " + e.getMessage());
-                        return "I got a response, but couldn't parse it. " + geminiText;
+                        return Map.of("response", "I got a response, but couldn't parse it. " + geminiText);
                     }
                 }
             }
         }
         
-        return "I'm sorry, I couldn't get a proper response from the AI service.";
+        return Map.of("response", "I'm sorry, I couldn't get a proper response from the AI service.");
     }
 
     /**
@@ -261,24 +262,47 @@ public class BotService {
         prompt.append("You have access to the following tools/actions:\n\n");
 
         prompt.append("1. **show_candidates()**:\n");
-        prompt.append("   - Description: Use this when the user asks to see pending merge candidates. Displays a list of merge candidates that are awaiting human review.\n");
-        prompt.append("   - Example phrases: \"Show me merge candidates\", \"What needs review?\", \"List pending merges\"\n\n");
+        prompt.append("   - Description: Use this when the user asks to see pending merge candidates. Displays a list of merge candidates waiting for review.\n");
+        prompt.append("   - Use for: 'show pending merges', 'show candidates', 'what needs review', 'pending items'\n\n");
 
-        prompt.append("2. **preview_merge(candidateId: Long)**:\n");
-        prompt.append("   - Description: Use this when the user asks for a detailed preview of a specific merge candidate. Requires the ID of the candidate.\n");
-        prompt.append("   - Example phrases: \"Preview merge 123\", \"Show details for candidate ID 45\", \"What's merge 789 about?\"\n");
-        prompt.append("   - Important: If the user asks for a preview but doesn't provide an ID, ask them to provide one.\n\n");
+        prompt.append("2. **show_approved_candidates()**:\n");
+        prompt.append("   - Description: Use this when the user asks to see approved/merged entities. Displays a list of merge candidates that have been approved.\n");
+        prompt.append("   - Use for: 'show merged entities', 'show approved', 'show completed merges', 'approved items', 'show me merged records', 'merged records'\n\n");
 
-        prompt.append("3. **merge_all()**:\n");
-        prompt.append("   - Description: Use this when the user explicitly asks to approve and merge all currently pending candidates. This will approve all candidates listed as 'PENDING_REVIEW'.\n");
-        prompt.append("   - Example phrases: \"Merge all pending\", \"Approve all candidates\", \"Process all merges at once\"\n\n");
+        prompt.append("3. **show_rejected_candidates()**:\n");
+        prompt.append("   - Description: Use this when the user asks to see rejected entities. Displays a list of merge candidates that have been rejected.\n");
+        prompt.append("   - Use for: 'show rejected', 'show rejected entities', 'rejected items'\n\n");
 
-        prompt.append("4. **show_audit_logs(candidateId: Long)**:\n");
-        prompt.append("   - Description: Use this when the user asks to see the bot's audit logs or reasoning for a specific merge candidate. Requires the ID of the candidate.\n");
-        prompt.append("   - Example phrases: \"Show audit logs for 123\", \"What was the bot's reasoning for candidate 45?\", \"View history for merge 789\"\n");
-        prompt.append("   - Important: If the user asks for audit logs but doesn't provide an ID, ask them to provide one.\n\n");
+        prompt.append("4. **show_all_candidates()**:\n");
+        prompt.append("   - Description: Use this when the user asks to see all entities regardless of status. Displays all merge candidates.\n");
+        prompt.append("   - Use for: 'show all', 'show all entities', 'show everything'\n\n");
 
+        prompt.append("5. **preview_merge(candidateId)**:\n");
+        prompt.append("   - Description: Use this when the user wants to see detailed information about a specific merge candidate.\n");
+        prompt.append("   - Parameters: candidateId (number) - The ID of the merge candidate to preview.\n");
+        prompt.append("   - Use for: 'preview merge <ID>', 'show details for <ID>', 'view candidate <ID>'\n\n");
+
+        prompt.append("6. **merge_all()**:\n");
+        prompt.append("   - Description: Use this when the user wants to approve all pending merge candidates at once.\n");
+        prompt.append("   - Use for: 'merge all', 'approve all', 'approve everything'\n\n");
+
+        prompt.append("7. **reject_candidate(candidateId, reason)**:\n");
+        prompt.append("   - Description: Use this when the user wants to reject a specific merge candidate with a reason.\n");
+        prompt.append("   - Parameters: candidateId (number) - The ID of the merge candidate to reject, reason (string) - The reason for rejection.\n");
+        prompt.append("   - Use for: 'reject <ID> because <reason>', 'reject candidate <ID>'\n\n");
+
+        prompt.append("8. **show_audit_logs(candidateId)**:\n");
+        prompt.append("   - Description: Use this when the user wants to see the audit trail and reasoning for a specific merge candidate.\n");
+        prompt.append("   - Parameters: candidateId (number) - The ID of the merge candidate to show audit logs for.\n");
+        prompt.append("   - Use for: 'show audit logs for <ID>', 'show history for <ID>', 'show reasoning for <ID>'\n\n");
+
+        prompt.append("IMPORTANT: Be flexible in understanding user intent. If someone asks for \"merges\", \"candidates\", \"pending items\", \"what needs review\", etc., they likely want to see candidates.\n");
         prompt.append("If the user's request does not fit any of the above tools, return a 'general_response' and respond conversationally.\n\n");
+
+        prompt.append("IMPORTANT: After every action, always suggest the next possible actions the user can take. For example:\n");
+        prompt.append("- After showing candidates: \"Next possible actions: preview merge <ID>, merge all, or ask me about specific candidates\"\n");
+        prompt.append("- After previewing a merge: \"Next possible actions: approve this merge, reject with reason, or ask me about other candidates\"\n");
+        prompt.append("- After rejecting: \"Next possible actions: review other candidates, show audit logs, or ask me for help\"\n\n");
 
         prompt.append("Your response MUST be a JSON object with two fields: 'action' (string) and 'data' (object).\n");
         prompt.append("If the action is 'general_response', the 'data' object should contain a 'response' field with your conversational reply.\n");
@@ -295,10 +319,12 @@ public class BotService {
      * This method now directly calls the mdm-bot-core service.
      * @param action The action string (e.g., "show_candidates", "preview_merge").
      * @param data The JSON node containing parameters for the action.
-     * @return A formatted string response for the user.
+     * @return A Map containing the response and candidates for the NLP dashboard.
      */
-    private String executeBotAction(String action, JsonNode data) {
+    private Map<String, Object> executeBotAction(String action, JsonNode data) {
         StringBuilder response = new StringBuilder();
+        Map<String, Object> result = new HashMap<>();
+        
         try {
             switch (action) {
                 case "show_candidates":
@@ -311,37 +337,106 @@ public class BotService {
 
                     if (candidates == null || candidates.isEmpty()) {
                         response.append("There are no pending merge candidates at the moment.");
+                        response.append("\n\nNext possible actions: check back later, or ask me to help you with other tasks.");
+                        result.put("response", response.toString());
                     } else {
-                        response.append("Here are the pending merge candidates:\n\n");
+                        response.append("Found ").append(candidates.size()).append(" pending merge candidates:\n\n");
                         for (MergeCandidatePair candidate : candidates) {
-                            Optional<MDMEntity> entity1Opt = deserializeMdmEntity(candidate.getEntity1Json());
-                            Optional<MDMEntity> entity2Opt = deserializeMdmEntity(candidate.getEntity2Json());
-
-                            response.append("• ID: ").append(candidate.getId())
-                                    .append(", Status: ").append(candidate.getStatus());
-
-                            entity1Opt.ifPresent(e1 -> response.append(", Entity 1: ").append(e1.getName()).append(" (").append(e1.getId()).append(")"));
-                            entity2Opt.ifPresent(e2 -> response.append(", Entity 2: ").append(e2.getName()).append(" (").append(e2.getId()).append(")"));
-                            response.append("\n");
+                            response.append("ID: ").append(candidate.getId()).append(" - Status: ").append(candidate.getStatus()).append("\n");
                         }
-                        response.append("\nTo see more details, use 'preview merge <ID>'.");
-                        response.append("\nTo approve all, type 'merge all'.");
+                        response.append("\nNext possible actions: preview merge <ID>, merge all, or ask me about specific candidates.");
+                        
+                        result.put("response", response.toString());
+                        result.put("candidates", candidates);
                     }
                     break;
+
+                case "show_approved_candidates":
+                    List<MergeCandidatePair> approvedCandidates = webClient.get()
+                            .uri(botCoreBaseUrl + "/api/merge/candidates/approved")
+                            .retrieve()
+                            .bodyToFlux(MergeCandidatePair.class)
+                            .collectList()
+                            .block();
+
+                    if (approvedCandidates == null || approvedCandidates.isEmpty()) {
+                        response.append("There are no approved merge candidates at the moment.");
+                        response.append("\n\nNext possible actions: check pending candidates, or ask me to help you with other tasks.");
+                        result.put("response", response.toString());
+                    } else {
+                        response.append("Found ").append(approvedCandidates.size()).append(" approved merge candidates (merged records):\n\n");
+                        for (MergeCandidatePair candidate : approvedCandidates) {
+                            response.append("ID: ").append(candidate.getId()).append(" - Status: ").append(candidate.getStatus()).append("\n");
+                        }
+                        response.append("\nNext possible actions: preview merge <ID>, show pending candidates, or ask me for help.");
+                        
+                        result.put("response", response.toString());
+                        result.put("candidates", approvedCandidates);
+                    }
+                    break;
+
+                case "show_rejected_candidates":
+                    List<MergeCandidatePair> rejectedCandidates = webClient.get()
+                            .uri(botCoreBaseUrl + "/api/merge/candidates/rejected")
+                            .retrieve()
+                            .bodyToFlux(MergeCandidatePair.class)
+                            .collectList()
+                            .block();
+
+                    if (rejectedCandidates == null || rejectedCandidates.isEmpty()) {
+                        response.append("There are no rejected merge candidates at the moment.");
+                        response.append("\n\nNext possible actions: check pending candidates, or ask me to help you with other tasks.");
+                        result.put("response", response.toString());
+                    } else {
+                        response.append("Found ").append(rejectedCandidates.size()).append(" rejected merge candidates:\n\n");
+                        for (MergeCandidatePair candidate : rejectedCandidates) {
+                            response.append("ID: ").append(candidate.getId()).append(" - Status: ").append(candidate.getStatus()).append("\n");
+                        }
+                        response.append("\nNext possible actions: preview merge <ID>, show pending candidates, or ask me for help.");
+                        
+                        result.put("response", response.toString());
+                        result.put("candidates", rejectedCandidates);
+                    }
+                    break;
+
+                case "show_all_candidates":
+                    List<MergeCandidatePair> allCandidates = webClient.get()
+                            .uri(botCoreBaseUrl + "/api/merge/candidates/all")
+                            .retrieve()
+                            .bodyToFlux(MergeCandidatePair.class)
+                            .collectList()
+                            .block();
+
+                    if (allCandidates == null || allCandidates.isEmpty()) {
+                        response.append("There are no merge candidates in the system at the moment.");
+                        response.append("\n\nNext possible actions: check back later, or ask me to help you with other tasks.");
+                        result.put("response", response.toString());
+                    } else {
+                        response.append("Found ").append(allCandidates.size()).append(" total merge candidates:\n\n");
+                        for (MergeCandidatePair candidate : allCandidates) {
+                            response.append("ID: ").append(candidate.getId()).append(" - Status: ").append(candidate.getStatus()).append("\n");
+                        }
+                        response.append("\nNext possible actions: preview merge <ID>, show specific status candidates, or ask me for help.");
+                        
+                        result.put("response", response.toString());
+                        result.put("candidates", allCandidates);
+                    }
+                    break;
+
                 case "preview_merge":
                     if (data.has("candidateId") && data.get("candidateId").isNumber()) {
                         Long candidateId = data.get("candidateId").asLong();
                         
                         // Get all pending candidates and find the one with matching ID
-                        List<MergeCandidatePair> allCandidates = webClient.get()
+                        List<MergeCandidatePair> pendingCandidates = webClient.get()
                                 .uri(botCoreBaseUrl + "/api/merge/candidates/pending-review")
                                 .retrieve()
                                 .bodyToFlux(MergeCandidatePair.class)
                                 .collectList()
                                 .block();
 
-                        Optional<MergeCandidatePair> candidateOpt = allCandidates != null ? 
-                            allCandidates.stream().filter(c -> c.getId().equals(candidateId)).findFirst() : 
+                        Optional<MergeCandidatePair> candidateOpt = pendingCandidates != null ? 
+                            pendingCandidates.stream().filter(c -> c.getId().equals(candidateId)).findFirst() : 
                             Optional.empty();
 
                         if (candidateOpt.isPresent()) {
@@ -361,13 +456,15 @@ public class BotService {
                             response.append("Details: ").append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(proposed)).append("\n\n");
 
                             response.append("--- Bot's Reasoning ---\n").append(candidate.getReasoningJson()).append("\n\n");
-                            response.append("You can approve or reject this merge on the dashboard.\n");
-                            response.append("For historical reasoning, ask me 'show audit logs for ").append(candidate.getId()).append("'.");
+                            response.append("Next possible actions: approve this merge, reject with reason, or ask me about other candidates.");
+                            response.append("\nFor historical reasoning, ask me 'show audit logs for ").append(candidate.getId()).append("'.");
                         } else {
                             response.append("Merge candidate with ID ").append(candidateId).append(" not found.");
+                            response.append("\n\nNext possible actions: check the candidate ID, show all candidates, or ask me for help.");
                         }
                     } else {
                         response.append("Please provide a valid candidate ID for preview. Example: 'preview merge 123'.");
+                        response.append("\n\nNext possible actions: show all candidates, or ask me for help.");
                     }
                     break;
                 case "merge_all":
@@ -380,6 +477,8 @@ public class BotService {
 
                     if (pending == null || pending.isEmpty()) {
                         response.append("There are no pending merge candidates to merge all at once.");
+                        response.append("\n\nNext possible actions: check back later, or ask me to help you with other tasks.");
+                        result.put("response", response.toString());
                     } else {
                         int approvedCount = 0;
                         for (MergeCandidatePair candidate : pending) {
@@ -402,7 +501,8 @@ public class BotService {
                         if (pending.size() > approvedCount) {
                             response.append(" ").append(pending.size() - approvedCount).append(" candidates could not be approved.");
                         }
-                        response.append(" Please refresh the dashboard to see the updated status.");
+                        response.append("\n\nNext possible actions: refresh the dashboard to see updated status, or ask me for help.");
+                        result.put("response", response.toString());
                     }
                     break;
                 case "show_audit_logs":
@@ -426,8 +526,38 @@ public class BotService {
                                         .append("\n  Timestamp: ").append(log.getTimestamp()).append("\n\n");
                             }
                         }
+                        response.append("\nNext possible actions: review other candidates, preview merge <ID>, or ask me for help.");
                     } else {
                         response.append("Please provide a valid candidate ID to show audit logs. Example: 'show audit logs for 123'.");
+                    }
+                    break;
+                case "reject_candidate":
+                    if (data.has("candidateId") && data.get("candidateId").isNumber() && data.has("reason")) {
+                        Long candidateId = data.get("candidateId").asLong();
+                        String reason = data.get("reason").asText();
+                        
+                        Map<String, String> requestBody = Map.of(
+                                "status", MergeCandidatePair.MergeStatus.REJECTED.name(),
+                                "comment", "Rejected by bot: " + reason
+                        );
+                        
+                        Optional<MergeCandidatePair> rejected = webClient.put()
+                                .uri(botCoreBaseUrl + "/api/merge/candidates/{id}/status", candidateId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(BodyInserters.fromValue(requestBody))
+                                .retrieve()
+                                .bodyToMono(MergeCandidatePair.class)
+                                .blockOptional();
+                        
+                        if (rejected.isPresent()) {
+                            response.append("Successfully rejected merge candidate ID: ").append(candidateId).append("\n");
+                            response.append("Reason: ").append(reason).append("\n\n");
+                            response.append("Next possible actions: review other candidates, show audit logs, or ask me for help.");
+                        } else {
+                            response.append("Failed to reject merge candidate ID: ").append(candidateId).append(". Candidate not found.");
+                        }
+                    } else {
+                        response.append("Please provide a valid candidate ID and reason to reject a candidate. Example: 'reject candidate 123 because it's a false positive'.");
                     }
                     break;
                 case "general_response":
@@ -438,6 +568,7 @@ public class BotService {
                     } else {
                         response.append("I'm sorry, I couldn't understand that. Please try rephrasing or ask me about merge candidates, previewing merges, or merging all.");
                     }
+                    response.append("\n\nNext possible actions: show candidates, preview merge <ID>, merge all, or ask me for help.");
                     break;
             }
         } catch (Exception e) {
@@ -445,7 +576,8 @@ public class BotService {
             e.printStackTrace();
             response.append("An error occurred while trying to fulfill your request: ").append(e.getMessage());
         }
-        return response.toString();
+        result.put("response", response.toString());
+        return result;
     }
 
     /**

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MDM Bot NLP Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f9fa; margin: 0; padding: 0; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { text-align: center; color: #2c3e50; }
+        .nlp-input-row { display: flex; gap: 10px; margin-bottom: 24px; }
+        #nlpInput { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1.1em; }
+        #sendBtn { padding: 12px 24px; background: #007bff; color: #fff; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; transition: background 0.2s; }
+        #sendBtn:hover { background: #0056b3; }
+        .actions-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        #mergeAllBtn { background: #28a745; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 1em; cursor: pointer; margin-bottom: 10px; }
+        #mergeAllBtn:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { padding: 12px 8px; border-bottom: 1px solid #eaeaea; text-align: left; }
+        th { background: #f1f3f6; color: #34495e; }
+        tr:last-child td { border-bottom: none; }
+        .action-btn { padding: 7px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-right: 6px; }
+        .approve { background: #28a745; color: #fff; }
+        .approve:hover { background: #218838; }
+        .reject { background: #dc3545; color: #fff; }
+        .reject:hover { background: #b52a37; }
+        .status { font-weight: bold; }
+        .status-pending { color: #e67e22; }
+        .status-approved { color: #28a745; }
+        .status-rejected { color: #dc3545; }
+        .message { margin: 10px 0; color: #888; }
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            th, td { font-size: 0.95em; }
+        }
+        .reject-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        .approve-btn:disabled, .reject-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .view-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>MDM Bot NLP Dashboard</h1>
+    <div class="nlp-input-row">
+        <input type="text" id="nlpInput" placeholder="Ask the bot anything... e.g., 'show me pending merges', 'show me merged entities', 'preview merge 1'">
+        <select id="statusFilter" style="padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1.1em;">
+            <option value="pending">Pending Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="all">All</option>
+        </select>
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+    <div class="actions-bar">
+        <button id="mergeAllBtn" style="display:none;">Merge All</button>
+    </div>
+    <div id="message" class="message"></div>
+    <table id="resultsTable" style="display: none; width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Entity1</th>
+                <th>Entity2</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="resultsTbody">
+            <!-- Results will be inserted here -->
+        </tbody>
+    </table>
+</div>
+<script>
+const nlpInput = document.getElementById('nlpInput');
+const sendBtn = document.getElementById('sendBtn');
+const messageDiv = document.getElementById('message');
+const resultsTable = document.getElementById('resultsTable');
+const resultsTbody = document.getElementById('resultsTbody');
+const mergeAllBtn = document.getElementById('mergeAllBtn');
+
+let lastCandidates = [];
+
+sendBtn.onclick = sendMessage;
+nlpInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendMessage();
+});
+mergeAllBtn.onclick = mergeAllCandidates;
+
+async function sendMessage() {
+    const query = nlpInput.value.trim();
+    if (!query) return;
+    
+    messageDiv.textContent = 'Processing...';
+    resultsTable.style.display = 'none';
+    mergeAllBtn.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/bot/nlp-chat-json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: query })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Bot response:', data);
+        
+        // Show the response text
+        messageDiv.textContent = data.response || 'No response from bot.';
+        
+        // If candidates are present, show them in the table
+        if (Array.isArray(data.candidates) && data.candidates.length > 0) {
+            lastCandidates = data.candidates;
+            showCandidates(data.candidates);
+        } else {
+            // Only hide table and show "no candidates" if we were expecting candidates
+            // but got none. Otherwise, just keep the response message.
+            if (data.response && (data.response.includes('pending merge candidates') || 
+                                 data.response.includes('approved merge candidates') ||
+                                 data.response.includes('rejected merge candidates'))) {
+                showCandidates([]);
+            }
+        }
+        
+        // Auto-set filter if needed
+        if (data.response && data.response.toLowerCase().includes('merged records')) {
+            document.getElementById('statusFilter').value = 'approved';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        messageDiv.textContent = `Error: ${error.message}`;
+    }
+}
+
+function showCandidates(candidates) {
+    lastCandidates = candidates;
+    resultsTbody.innerHTML = '';
+    if (!candidates.length) {
+        resultsTable.style.display = 'none';
+        mergeAllBtn.style.display = 'none';
+        // Don't override the message here - let the calling function handle it
+        return;
+    }
+    resultsTable.style.display = '';
+    mergeAllBtn.style.display = '';
+    messageDiv.textContent = '';
+    
+    candidates.forEach((c, idx) => {
+        // Extract entity names from JSON
+        const entity1Name = extractEntityName(c.entity1Json);
+        const entity2Name = extractEntityName(c.entity2Json);
+        
+        const tr = document.createElement('tr');
+        
+        // Determine if buttons should be disabled
+        const isApproved = c.status === 'APPROVED';
+        const isRejected = c.status === 'REJECTED';
+        const buttonsDisabled = isApproved || isRejected;
+        
+        tr.innerHTML = `
+            <td>${c.id ?? ''}</td>
+            <td>${entity1Name}</td>
+            <td>${entity2Name}</td>
+            <td>${c.status ?? ''}</td>
+            <td>
+                <button onclick="toggleDetails(${idx})" id="expand-btn-${idx}" class="view-btn">View</button>
+                <button onclick="approve(${c.id})" class="approve-btn" ${buttonsDisabled ? 'disabled' : ''}>Approve</button>
+                <button onclick="reject(${c.id})" class="reject-btn" ${buttonsDisabled ? 'disabled' : ''}>Reject</button>
+            </td>
+        `;
+        resultsTbody.appendChild(tr);
+        
+        // Details row
+        const detailsTr = document.createElement('tr');
+        detailsTr.className = 'details-row';
+        detailsTr.style.display = 'none';
+        detailsTr.id = `details-row-${idx}`;
+        
+        const mergedEntity = c.proposedMergedEntityJson || '';
+        const reasoning = c.reasoningJson || '';
+        const reviewComment = c.reviewComment || '';
+        detailsTr.innerHTML = `
+            <td colspan="5">
+                <b>Original Entity 1:</b><pre>${formatJson(c.entity1Json || '')}</pre>
+                <b>Original Entity 2:</b><pre>${formatJson(c.entity2Json || '')}</pre>
+                <b>Bot's Proposed Merged Entity:</b><pre>${formatJson(mergedEntity)}</pre>
+                <b>Bot's Reasoning:</b><pre>${formatJson(reasoning)}</pre>
+                ${reviewComment ? `<b>Review Comment:</b><pre>${reviewComment}</pre>` : ''}
+                <button onclick="toggleDetails(${idx}, true)">Close</button>
+            </td>
+        `;
+        resultsTbody.appendChild(detailsTr);
+    });
+}
+
+function extractEntityName(entityJson) {
+    if (!entityJson) return 'N/A';
+    try {
+        const entity = JSON.parse(entityJson);
+        return entity.name || entity.id || 'Unknown';
+    } catch (e) {
+        return 'Invalid JSON';
+    }
+}
+
+function formatEntity(entity) {
+    if (!entity) return '';
+    try {
+        if (typeof entity === 'string') {
+            // Try to pretty-print JSON if possible
+            if (entity.trim().startsWith('{')) {
+                return JSON.stringify(JSON.parse(entity), null, 2);
+            }
+            return entity;
+        }
+        return JSON.stringify(entity, null, 2);
+    } catch (e) {
+        return entity;
+    }
+}
+
+window.approve = function(id) {
+    console.log('Approve function called for ID:', id);
+    const comment = prompt('Add optional approval comment (or leave empty):');
+    console.log('Comment entered:', comment);
+    const commentText = comment ? 'Approved from NLP dashboard: ' + comment : 'Approved from NLP dashboard';
+    
+    console.log('Sending approval request for ID:', id, 'with comment:', commentText);
+    
+    fetch(`/api/merge/candidates/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED', comment: commentText })
+    })
+    .then(response => {
+        console.log('Approval response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Approval failed: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Approval successful:', data);
+        messageDiv.textContent = `Candidate ${id} approved.`;
+        // Optionally remove row or refresh
+        lastCandidates = lastCandidates.filter(c => c.id !== id);
+        showCandidates(lastCandidates);
+    })
+    .catch(error => {
+        console.error('Approval error:', error);
+        messageDiv.textContent = `Error approving candidate ${id}: ${error.message}`;
+    });
+}
+
+window.reject = function(id) {
+    console.log('Reject function called for ID:', id);
+    const reason = prompt('Please provide a reason for rejection:');
+    console.log('Reason entered:', reason);
+    
+    if (reason === null) {
+        console.log('User cancelled rejection');
+        return; // User cancelled
+    }
+    
+    if (reason.trim() === '') {
+        alert('Please provide a reason for rejection.');
+        console.log('Empty reason provided');
+        return;
+    }
+    
+    console.log('Sending rejection request for ID:', id, 'with reason:', reason);
+    
+    fetch(`/api/merge/candidates/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED', comment: 'Rejected from NLP dashboard: ' + reason })
+    })
+    .then(response => {
+        console.log('Rejection response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Rejection failed: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Rejection successful:', data);
+        messageDiv.textContent = `Candidate ${id} rejected with reason: ${reason}`;
+        lastCandidates = lastCandidates.filter(c => c.id !== id);
+        showCandidates(lastCandidates);
+    })
+    .catch(error => {
+        console.error('Rejection error:', error);
+        messageDiv.textContent = `Error rejecting candidate ${id}: ${error.message}`;
+    });
+}
+
+function mergeAllCandidates() {
+    if (!lastCandidates.length) return;
+    Promise.all(lastCandidates.map(c =>
+        fetch(`/api/merge/candidates/${c.id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'APPROVED', comment: 'Bulk approved from NLP dashboard' })
+        })
+    )).then(() => {
+        messageDiv.textContent = 'All candidates approved.';
+        lastCandidates = [];
+        showCandidates([]);
+    });
+}
+
+function formatJson(jsonString) {
+    if (!jsonString) return 'No data available';
+    try {
+        return JSON.stringify(JSON.parse(jsonString), null, 2);
+    } catch (e) {
+        return jsonString;
+    }
+}
+
+function toggleDetails(idx, isClose = false) {
+    const detailsRow = document.getElementById(`details-row-${idx}`);
+    const expandBtn = document.getElementById(`expand-btn-${idx}`);
+    
+    if (!detailsRow || !expandBtn) return;
+    
+    // Close all other details first
+    document.querySelectorAll('.details-row').forEach(row => {
+        if (row.id !== `details-row-${idx}`) {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Reset all expand buttons
+    document.querySelectorAll('[id^="expand-btn-"]').forEach(btn => {
+        btn.textContent = 'View';
+    });
+    
+    if (detailsRow.style.display === 'none' || isClose) {
+        detailsRow.style.display = 'table-row';
+        expandBtn.textContent = 'Close';
+    } else {
+        detailsRow.style.display = 'none';
+        expandBtn.textContent = 'View';
+    }
+}
+</script>
+</body>
+</html>

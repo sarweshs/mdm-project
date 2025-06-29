@@ -5,6 +5,7 @@ import com.mdm.botcore.domain.model.MDMEntity;
 import com.mdm.botcore.domain.model.AuditLog;
 import com.mdm.botcore.domain.model.MergeCandidatePair;
 import com.mdm.botcore.domain.model.AuditLogDTO;
+import com.mdm.botcore.domain.model.MergeCandidatePairDTO;
 import com.mdm.botcore.service.MergeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.mdm.botcore.domain.model.MergeCandidatePair.MergeStatus;
 
 /**
  * REST Controller for the MDM Bot Core service.
@@ -75,8 +78,41 @@ public class MergeController {
      */
     @GetMapping("/candidates/pending-review")
     public ResponseEntity<List<MergeCandidatePair>> getPendingMergeCandidates() {
-        List<MergeCandidatePair> pendingCandidates = mergeService.getMergeCandidatesByStatus(MergeCandidatePair.MergeStatus.PENDING_REVIEW);
+        List<MergeCandidatePair> pendingCandidates = mergeService.getMergeCandidatesByStatus(MergeStatus.PENDING_REVIEW);
         return new ResponseEntity<>(pendingCandidates, HttpStatus.OK);
+    }
+
+    /**
+     * Retrieves all merge candidate pairs that have been approved.
+     * This endpoint is intended for the human review dashboard.
+     * @return A list of MergeCandidatePair objects.
+     */
+    @GetMapping("/candidates/approved")
+    public ResponseEntity<List<MergeCandidatePair>> getApprovedMergeCandidates() {
+        List<MergeCandidatePair> approvedCandidates = mergeService.getMergeCandidatesByStatus(MergeStatus.APPROVED);
+        return new ResponseEntity<>(approvedCandidates, HttpStatus.OK);
+    }
+
+    /**
+     * Retrieves all merge candidate pairs that have been rejected.
+     * This endpoint is intended for the human review dashboard.
+     * @return A list of MergeCandidatePair objects.
+     */
+    @GetMapping("/candidates/rejected")
+    public ResponseEntity<List<MergeCandidatePair>> getRejectedMergeCandidates() {
+        List<MergeCandidatePair> rejectedCandidates = mergeService.getMergeCandidatesByStatus(MergeStatus.REJECTED);
+        return new ResponseEntity<>(rejectedCandidates, HttpStatus.OK);
+    }
+
+    /**
+     * Retrieves all merge candidate pairs regardless of status.
+     * This endpoint is intended for the human review dashboard.
+     * @return A list of MergeCandidatePair objects.
+     */
+    @GetMapping("/candidates/all")
+    public ResponseEntity<List<MergeCandidatePair>> getAllMergeCandidates() {
+        List<MergeCandidatePair> allCandidates = mergeService.getAllMergeCandidates();
+        return new ResponseEntity<>(allCandidates, HttpStatus.OK);
     }
 
     /**
@@ -129,5 +165,12 @@ public class MergeController {
             ))
             .collect(Collectors.toList());
         return new ResponseEntity<>(dtos, HttpStatus.OK);
+    }
+
+    @GetMapping("/candidates/pending-review-json")
+    public ResponseEntity<List<MergeCandidatePairDTO>> getPendingReviewCandidatesJson() {
+        List<MergeCandidatePair> pairs = mergeService.getMergeCandidatesByStatus(MergeStatus.PENDING_REVIEW);
+        List<MergeCandidatePairDTO> dtos = pairs.stream().map(MergeCandidatePairDTO::fromEntity).toList();
+        return ResponseEntity.ok(dtos);
     }
 }
