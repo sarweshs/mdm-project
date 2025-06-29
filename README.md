@@ -82,9 +82,23 @@ The system consists of four main microservices:
 
 ### Option 2: Docker Deployment
 
-1. **Configure LLM API Key**
-   - Edit `mdm-ai-orchestration/src/main/resources/application.properties`
-   - Choose your preferred LLM provider and configure the API key
+1. **Configure Environment Variables**
+   
+   **Required: Set up your LLM API key**
+   
+   Create a `.env` file in the project root:
+   ```bash
+   cp env.example .env
+   ```
+   
+   Edit `.env` and add your API keys:
+   ```bash
+   # Required for OpenAI (default provider)
+   OPENAI_API_KEY=your_actual_openai_api_key_here
+   
+   # Optional for Gemini (alternative provider)
+   GEMINI_API_KEY=your_actual_gemini_api_key_here
+   ```
 
 2. **Build and Run with Docker**
    ```bash
@@ -95,9 +109,26 @@ The system consists of four main microservices:
    docker-compose up -d
    ```
 
-3. **Access the Application**
+3. **Verify Services are Running**
+   ```bash
+   # Check service status
+   docker-compose ps
+   
+   # View logs
+   docker-compose logs -f
+   ```
+
+4. **Access the Application**
    - Review Dashboard: http://localhost:8082
-   - All services will be available on their respective ports
+   - Global Rules API: http://localhost:8080
+   - Bot Core API: http://localhost:8081
+   - AI Orchestration API: http://localhost:8083
+
+5. **Load Test Data (Optional)**
+   ```bash
+   # Load sample rules and test data
+   ./test/load-test-data.sh
+   ```
 
 ## Features
 
@@ -154,6 +185,12 @@ If you see "Error communicating with the bot":
 3. Verify network connectivity between services
 4. Check the `llm.provider` setting matches your configured API key
 
+### Docker Issues
+1. **Environment Variables**: Ensure your `.env` file contains the required API keys
+2. **Service Health**: Check if all services are healthy with `docker-compose ps`
+3. **Logs**: View service logs with `docker-compose logs <service-name>`
+4. **Port Conflicts**: Ensure ports 8080-8083 are not in use by other applications
+
 ### Service Startup Issues
 1. Ensure PostgreSQL is running and accessible
 2. Check that all required ports (8080-8083) are available
@@ -187,6 +224,7 @@ mdm-project/
 ├── mdm-review-dashboard/     # Web interface
 ├── mdm-ai-orchestration/     # AI bot service
 ├── docker-compose.yml        # Docker configuration
+├── env.example              # Environment variables template
 └── README.md                 # This file
 ```
 
@@ -197,9 +235,6 @@ mvn clean compile
 
 # Run tests
 mvn test
-
-# Package JARs
-mvn package
 ```
 
 ## License

@@ -5,9 +5,34 @@
 
 echo "🚀 Building MDM Project Docker Images..."
 
-# Build all JAR files first
-echo "📦 Building JAR files..."
-mvn clean package -DskipTests
+# Build mdm-bot-core first to ensure its JAR is available for others
+echo "📦 Building mdm-bot-core JAR with Spring Boot repackage..."
+cd mdm-bot-core 
+mvn clean install -DskipTests
+mvn spring-boot:repackage -DskipTests
+cd ..
+sleep 1
+
+# Build mdm-global-rules
+echo "📦 Building mdm-global-rules JAR with Spring Boot repackage..."
+cd mdm-global-rules 
+mvn clean package spring-boot:repackage -DskipTests
+cd ..
+sleep 1
+
+# Build mdm-review-dashboard
+echo "📦 Building mdm-review-dashboard JAR with Spring Boot repackage..."
+cd mdm-review-dashboard 
+mvn clean package spring-boot:repackage -DskipTests
+cd ..
+sleep 1
+
+# Build mdm-ai-orchestration
+echo "📦 Building mdm-ai-orchestration JAR with Spring Boot repackage..."
+cd mdm-ai-orchestration 
+mvn clean package spring-boot:repackage -DskipTests
+cd ..
+sleep 1
 
 if [ $? -ne 0 ]; then
     echo "❌ Maven build failed. Please fix the compilation errors first."
