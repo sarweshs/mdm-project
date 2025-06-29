@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdm.botcore.domain.model.MDMEntity;
 import com.mdm.botcore.domain.model.AuditLog;
 import com.mdm.botcore.domain.model.MergeCandidatePair;
+import com.mdm.botcore.domain.model.AuditLogDTO;
 import com.mdm.botcore.service.MergeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -111,11 +112,22 @@ public class MergeController {
      * Retrieves audit logs for a specific merge candidate pair.
      * This endpoint is intended for the human review dashboard to show historical reasoning.
      * @param id The ID of the merge candidate pair.
-     * @return A list of AuditLog objects.
+     * @return A list of AuditLogDTO objects.
      */
     @GetMapping("/candidates/{id}/audit-logs")
-    public ResponseEntity<List<AuditLog>> getAuditLogsForCandidate(@PathVariable Long id) {
+    public ResponseEntity<List<AuditLogDTO>> getAuditLogsForCandidate(@PathVariable Long id) {
         List<AuditLog> auditLogs = mergeService.getAuditLogsForMergeCandidate(id);
-        return new ResponseEntity<>(auditLogs, HttpStatus.OK);
+        List<AuditLogDTO> dtos = auditLogs.stream()
+            .map(log -> new AuditLogDTO(
+                log.getId(),
+                log.getRuleName(),
+                log.getRuleDetails(),
+                log.getEntity1Id(),
+                log.getEntity2Id(),
+                log.isBotDecisionToMerge(),
+                log.getTimestamp()
+            ))
+            .collect(Collectors.toList());
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 }

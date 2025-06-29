@@ -201,6 +201,68 @@
             background-color: #5a6268;
         }
     </style>
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .modal-table th, .modal-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .modal-table th {
+            background-color: #f4f7f6;
+        }
+        .modal-actions button {
+            margin-right: 5px;
+            padding: 5px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-actions .approve {
+            background-color: #28a745;
+            color: white;
+        }
+        .modal-actions .reject {
+            background-color: #dc3545;
+            color: white;
+        }
+        .modal-close {
+            float: right;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: #333;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -267,6 +329,37 @@
     </div>
 </div>
 
+<!-- Modal for Bot Results -->
+<div id="botResultsModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" id="closeModalBtn">&times;</span>
+        <h2>Merge Candidates</h2>
+        <table class="modal-table" id="candidatesTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Entity 1</th>
+                    <th>Entity 2</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be inserted by JS -->
+            </tbody>
+        </table>
+        <button onclick="closeModal()">Close</button>
+    </div>
+</div>
+
+<!-- Candidate Detail Modal -->
+<div id="candidateDetailModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close" onclick="closeCandidateDetailModal()">&times;</span>
+        <div id="candidateDetailContent"></div>
+    </div>
+</div>
+
 <script th:inline="javascript">
     // Make the AI Orchestration base URL available in JavaScript
     const aiOrchestrationBaseUrl = /*[[${aiOrchestrationBaseUrl}]]*/ 'http://localhost:8083';
@@ -285,49 +378,98 @@
             chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
         }
 
+        function showCandidatesModal(candidates) {
+            const modal = document.getElementById('botResultsModal');
+            const tbody = document.querySelector('#candidatesTable tbody');
+            tbody.innerHTML = '';
+            candidates.forEach(candidate => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${candidate.id}</td>
+                    <td>${candidate.entity1Name || ''}</td>
+                    <td>${candidate.entity2Name || ''}</td>
+                    <td>${candidate.status || ''}</td>
+                    <td class="modal-actions">
+                        <button class="approve" onclick="approveCandidate(${candidate.id})">Approve</button>
+                        <button class="reject" onclick="rejectCandidate(${candidate.id})">Reject</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            modal.style.display = 'block';
+        }
+        function closeModal() {
+            document.getElementById('botResultsModal').style.display = 'none';
+        }
+        document.getElementById('closeModalBtn').onclick = closeModal;
+        window.onclick = function(event) {
+            const modal = document.getElementById('botResultsModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+        async function approveCandidate(id) {
+            await fetch(`/api/merge/candidates/${id}/status`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({status: 'APPROVED', comment: 'Approved from bot UI'})
+            });
+            alert('Approved!');
+            closeModal();
+            // Optionally refresh the dashboard
+            location.reload();
+        }
+        async function rejectCandidate(id) {
+            await fetch(`/api/merge/candidates/${id}/status`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({status: 'REJECTED', comment: 'Rejected from bot UI'})
+            });
+            alert('Rejected!');
+            closeModal();
+            // Optionally refresh the dashboard
+            location.reload();
+        }
         async function sendMessage() {
             const message = userInput.value.trim();
             if (message === '') return;
-
             addMessage(message, 'user');
-            userInput.value = ''; // Clear input
-
-            // Show a loading indicator
+            userInput.value = '';
             const loadingMessage = document.createElement('div');
             loadingMessage.classList.add('chat-message', 'bot-message');
             loadingMessage.textContent = 'Bot is thinking...';
             loadingMessage.id = 'loading-indicator';
             chatBox.appendChild(loadingMessage);
             chatBox.scrollTop = chatBox.scrollHeight;
-
             try {
-                // Use the dynamically provided aiOrchestrationBaseUrl
                 const response = await fetch(`${aiOrchestrationBaseUrl}/api/bot/chat`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ message: message })
                 });
-
                 const data = await response.json();
                 const botResponse = data.response || 'An unknown error occurred.';
-
-                // Remove loading indicator
-                if (loadingMessage) {
-                    chatBox.removeChild(loadingMessage);
+                if (loadingMessage) chatBox.removeChild(loadingMessage);
+                // Try to detect a candidate list in the response (simple JSON parse)
+                let candidates = null;
+                try {
+                    // If botResponse is a JSON string with a candidates array, parse it
+                    const parsed = typeof botResponse === 'string' ? JSON.parse(botResponse) : botResponse;
+                    if (Array.isArray(parsed.candidates)) {
+                        candidates = parsed.candidates;
+                    }
+                } catch (e) {}
+                if (candidates && candidates.length > 0) {
+                    showCandidatesModal(candidates);
+                    addMessage('Showing merge candidates in a table.', 'bot');
+                } else {
+                    addMessage(botResponse, 'bot');
                 }
-                addMessage(botResponse, 'bot');
             } catch (error) {
-                console.error('Error sending message to bot:', error);
-                // Remove loading indicator
-                if (loadingMessage) {
-                    chatBox.removeChild(loadingMessage);
-                }
+                if (loadingMessage) chatBox.removeChild(loadingMessage);
                 addMessage('Error communicating with the bot.', 'bot');
             }
         }
-
         sendButton.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -335,6 +477,83 @@
             }
         });
     });
+
+    function parseCandidatesFromText(text) {
+        // Look for lines like: • ID: 2, Status: PENDING_REVIEW, Entity 1: Global Pharmaceuticals (org-004), Entity 2: Global Pharmaceuticals (org-005)
+        const lines = text.split('\n').filter(line => line.trim().startsWith('• ID:'));
+        const candidates = lines.map(line => {
+            // Extract ID
+            const idMatch = line.match(/ID: (\d+)/);
+            const id = idMatch ? idMatch[1] : '';
+            // Extract Status
+            const statusMatch = line.match(/Status: ([^,]+)/);
+            const status = statusMatch ? statusMatch[1] : '';
+            // Extract Entity 1
+            const entity1Match = line.match(/Entity 1: ([^(]+) \(([^)]+)\)/);
+            const entity1 = entity1Match ? { name: entity1Match[1].trim(), org: entity1Match[2] } : { name: '', org: '' };
+            // Extract Entity 2
+            const entity2Match = line.match(/Entity 2: ([^(]+) \(([^)]+)\)/);
+            const entity2 = entity2Match ? { name: entity2Match[1].trim(), org: entity2Match[2] } : { name: '', org: '' };
+            return { id, status, entity1, entity2 };
+        });
+        return candidates;
+    }
+
+    function showCandidatesModalFromText(text) {
+        const candidates = parseCandidatesFromText(text);
+        if (candidates.length === 0) return;
+        const tableBody = document.getElementById('candidatesTableBody');
+        tableBody.innerHTML = '';
+        candidates.forEach(candidate => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${candidate.id}</td>
+                <td>${candidate.status}</td>
+                <td>${candidate.entity1.name} (${candidate.entity1.org})</td>
+                <td>${candidate.entity2.name} (${candidate.entity2.org})</td>
+                <td>
+                    <button onclick="viewCandidateDetail('${candidate.id}')">View</button>
+                    <button onclick="approveCandidate('${candidate.id}')">Approve</button>
+                    <button onclick="rejectCandidate('${candidate.id}')">Reject</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+        document.getElementById('candidatesModal').style.display = 'block';
+    }
+
+    // Fetch and show candidate detail in modal
+    function viewCandidateDetail(candidateId) {
+        // You may want to fetch details from backend, but for now, reuse the last bot response
+        const lastBotResponse = document.getElementById('botResponse').innerText;
+        // Try to find the candidate in the parsed list
+        const candidates = parseCandidatesFromText(lastBotResponse);
+        const candidate = candidates.find(c => c.id === candidateId);
+        if (!candidate) return;
+        // For demo, show static details. In real app, fetch full details from backend.
+        // Compose HTML for detail modal
+        let html = `<h2>Candidate ID: ${candidate.id}</h2>`;
+        html += `<p><b>Status:</b> ${candidate.status}</p>`;
+        html += `<p><b>Created At:</b> (not available)</p>`;
+        html += `<p><b>Last Updated:</b> (not available)</p>`;
+        html += `<h3>Original Entities:</h3>`;
+        html += `<div><b>Entity 1 (ID: ${candidate.entity1.org}):</b><br><pre>${candidate.entity1.name}</pre></div>`;
+        html += `<div><b>Entity 2 (ID: ${candidate.entity2.org}):</b><br><pre>${candidate.entity2.name}</pre></div>`;
+        html += `<h3>Bot's Proposed Merged Entity:</h3>`;
+        html += `<pre>(not available)</pre>`;
+        html += `<h3>Bot's Reasoning:</h3>`;
+        html += `<pre>(not available)</pre>`;
+        html += `<textarea id="reviewComment" placeholder="Add optional comment..." style="width:100%;margin-top:10px;"></textarea>`;
+        html += `<div style="margin-top:10px;text-align:right;">
+                    <button style="background:#4CAF50;color:white;" onclick="approveCandidate('${candidate.id}')">Approve</button>
+                    <button style="background:#f44336;color:white;" onclick="rejectCandidate('${candidate.id}')">Reject</button>
+                </div>`;
+        document.getElementById('candidateDetailContent').innerHTML = html;
+        document.getElementById('candidateDetailModal').style.display = 'block';
+    }
+    function closeCandidateDetailModal() {
+        document.getElementById('candidateDetailModal').style.display = 'none';
+    }
 </script>
 </body>
 </html>
